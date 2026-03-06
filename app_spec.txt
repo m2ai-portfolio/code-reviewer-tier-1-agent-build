@@ -1,0 +1,343 @@
+# Code Reviewer - Tier 1 Agent Build - App Specification
+
+## Overview
+
+This specification builds an autonomous Claude-powered agent that embodies a Senior Code Quality Engineer & Review Specialist persona. The agent operates independently within the ST Metro ecosystem, loading its behavioral instructions from a persona YAML configuration and dynamically resolving code review tools from the Academy tool group catalog. Unlike manual code review processes, this agent provides consistent, comprehensive analysis across codebases with specialized focus on quality patterns, security vulnerabilities, and architectural adherence.
+
+The agent represents the evolution from persona-based interactions to fully autonomous operation, serving as a critical component in end-to-end development pipelines. It integrates with existing ST Metro infrastructure while maintaining the specialized knowledge and review standards of a senior engineer, ensuring code quality gates are consistently applied across all development activities.
+
+**Problem Statement**: The Code Reviewer persona currently operates in manual mode, requiring human initiation and guidance for each review session. To enable seamless integration into CI/CD pipelines and provide continuous code quality assurance, this persona must be promoted to autonomous agent status with self-contained operation capabilities and dynamic tool resolution from the Academy catalog.
+
+**Target Audience**: ST Metro ecosystem developers, DevOps engineers, and automated pipeline systems requiring consistent code quality enforcement without manual intervention.
+
+## Tech Stack
+
+- Python 3.11+ with anthropic SDK for Claude Sonnet integration
+- YAML parsing with PyYAML for persona configuration loading
+- Tool resolution system interfacing with Academy tool group catalog
+- Asyncio for concurrent code analysis operations
+- Git integration via GitPython for repository operations
+- Abstract Syntax Tree (AST) parsing for code structure analysis
+- pytest with async support for agent behavior validation
+- Pydantic for structured data validation and tool interface contracts
+
+## Environment Setup
+
+### Prerequisites
+
+- Python 3.11 or higher
+- Git 2.30+ for repository operations
+- Access to ST Metro Academy tool group catalog
+- Claude API access with Sonnet model permissions
+
+### Configuration
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| ANTHROPIC_API_KEY | Yes | Claude API authentication key for Sonnet model access |
+| PERSONA_CONFIG_PATH | Yes | Path to Code Reviewer persona YAML configuration file |
+| ACADEMY_CATALOG_URL | Yes | ST Metro Academy tool group catalog endpoint URL |
+| REVIEW_OUTPUT_FORMAT | No | Output format preference (json/markdown/yaml), defaults to json |
+| MAX_FILE_SIZE_KB | No | Maximum file size for individual code review, defaults to 500KB |
+| CONCURRENT_REVIEWS | No | Number of parallel review operations, defaults to 3 |
+| GIT_CLONE_TIMEOUT | No | Repository clone timeout in seconds, defaults to 300 |
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Code Reviewer Agent                     │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌────────────────────────────────┐  │
+│  │ Persona Loader  │    │     Tool Resolution Engine    │  │
+│  │   (YAML Parser) │    │  (Academy Catalog Interface)  │  │
+│  └─────────────────┘    └────────────────────────────────┘  │
+│           │                           │                     │
+│           └─────────┬─────────────────┘                     │
+│                     │                                       │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │            Agent Core Engine                           │  │
+│  │         (Claude Sonnet + Tool Use)                     │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                     │                                       │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │              Review Orchestrator                       │  │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐   │  │
+│  │  │Code Pattern │ │Security Scan│ │Architecture     │   │  │
+│  │  │Analyzer     │ │Engine       │ │Compliance Check │   │  │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘   │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                     │                                       │
+└─────────────────────┼─────────────────────────────────────────┘
+                      │
+                      ▼
+        ┌─────────────────────────────┐
+        │     Review Results          │
+        │   ┌─────────────────────┐   │
+        │   │Quality Score Report │   │
+        │   │Issue Classifications│   │
+        │   │Remediation Suggestions│ │
+        │   │Architecture Feedback │   │
+        │   └─────────────────────┘   │
+        └─────────────────────────────┘
+```
+
+## Core Features
+
+### Feature 1: Persona Configuration Loading
+
+**Description**: Dynamically loads the Senior Code Quality Engineer persona configuration from YAML files, establishing behavioral patterns, review criteria weightings, and specialized knowledge domains that guide the agent's code analysis approach.
+
+**Requirements**:
+- Parse persona YAML with validation of required persona fields (role, expertise_areas, review_standards)
+- Load code quality thresholds and severity classification rules from persona config
+- Establish review methodology preferences (security-first, performance-aware, maintainability-focused)
+- Support hot-reload of persona configuration without agent restart
+
+**Test Steps**:
+1. Place valid Code Reviewer persona YAML at configured path → Agent loads successfully with persona traits active
+2. Modify persona config file with updated review thresholds → Agent reflects new standards in next review cycle
+3. Provide malformed YAML configuration → Agent fails gracefully with detailed validation error messages
+4. Test persona-specific review behavior by analyzing code with different persona configs → Review emphasis changes appropriately
+
+### Feature 2: Academy Tool Catalog Integration
+
+**Description**: Connects to the ST Metro Academy tool group catalog to dynamically resolve and load code_review tool group implementations, enabling the agent to utilize specialized analysis tools without hardcoded dependencies.
+
+**Requirements**:
+- Query Academy catalog API for available code_review tool group implementations
+- Dynamically load resolved tools with proper interface validation
+- Cache tool definitions with TTL-based refresh for performance optimization
+- Handle tool unavailability gracefully with fallback mechanisms
+
+**Test Steps**:
+1. Agent startup with valid Academy catalog URL → Successfully discovers and loads code_review tools
+2. Simulate Academy catalog service unavailability → Agent uses cached tools and logs appropriate warnings  
+3. Add new tool to code_review group in Academy → Agent discovers and integrates new tool within cache refresh window
+4. Request code review operation → Agent utilizes multiple Academy-resolved tools in coordinated analysis
+
+### Feature 3: Autonomous Code Repository Analysis
+
+**Description**: Performs comprehensive code quality assessment across entire repositories or targeted file sets, analyzing code patterns, identifying security vulnerabilities, and evaluating architectural compliance without human intervention.
+
+**Requirements**:
+- Clone or access Git repositories with secure credential handling
+- Execute multi-dimensional code analysis using AST parsing and pattern recognition
+- Generate detailed quality metrics with confidence scores and evidence citations
+- Support incremental analysis for large codebases with change-focused reviews
+
+**Test Steps**:
+1. Provide repository URL with Python codebase → Agent produces comprehensive review report with quality scores
+2. Submit repository with known security vulnerabilities → Agent identifies and classifies security issues with remediation suggestions
+3. Analyze codebase with architectural violations → Agent flags compliance issues with specific file and line references
+4. Run incremental analysis on repository with recent commits → Agent focuses review on changed files while maintaining context awareness
+
+### Feature 4: Multi-Language Quality Assessment Engine
+
+**Description**: Applies language-specific quality standards and best practices across different programming languages, utilizing the persona's expertise in multiple technology stacks while maintaining consistent review methodology.
+
+**Requirements**:
+- Support Python, JavaScript, TypeScript, Java, and Go code quality analysis
+- Apply language-specific linting rules and best practice validations
+- Maintain consistent quality scoring methodology across different languages
+- Provide language-appropriate remediation suggestions and refactoring recommendations
+
+**Test Steps**:
+1. Submit Python code with PEP 8 violations → Agent identifies style issues and suggests specific corrections
+2. Analyze JavaScript code with async/await anti-patterns → Agent flags concurrency issues with modern alternatives
+3. Review TypeScript code with weak type definitions → Agent recommends stronger typing patterns
+4. Test multi-language repository → Agent provides cohesive review covering all supported languages with unified quality metrics
+
+### Feature 5: Structured Review Report Generation
+
+**Description**: Produces comprehensive, actionable review reports with categorized findings, priority rankings, and specific remediation guidance formatted for both human readers and automated pipeline integration.
+
+**Requirements**:
+- Generate reports in multiple formats (JSON for automation, Markdown for human review)
+- Categorize findings by severity (critical, high, medium, low) with justification
+- Include code snippets with highlighted problematic sections and suggested improvements
+- Provide overall quality score with breakdown by categories (maintainability, security, performance, style)
+
+**Test Steps**:
+1. Complete code review operation → Agent generates structured report with all required sections populated
+2. Request JSON format output → Agent produces machine-readable report suitable for CI/CD integration
+3. Generate Markdown report → Agent creates human-friendly document with syntax highlighting and clear section organization
+4. Review report for critical security issue → Agent includes detailed remediation steps with code examples and security impact assessment
+
+## Data Models
+
+```python
+@dataclass
+class PersonaConfiguration:
+    role: str
+    expertise_areas: List[str]
+    review_standards: ReviewStandards
+    quality_thresholds: QualityThresholds
+    communication_style: str
+    focus_priorities: List[str]
+
+@dataclass
+class ReviewStandards:
+    security_weight: float
+    maintainability_weight: float
+    performance_weight: float
+    style_consistency_weight: float
+    documentation_weight: float
+
+@dataclass
+class QualityThresholds:
+    minimum_acceptable_score: float
+    critical_issue_threshold: int
+    complexity_warning_level: int
+    test_coverage_minimum: float
+
+@dataclass
+class CodeReviewRequest:
+    repository_url: Optional[str]
+    file_paths: Optional[List[str]]
+    target_branch: str
+    review_scope: str  # full, incremental, targeted
+    output_format: str
+    priority_focus: Optional[List[str]]
+
+@dataclass
+class ReviewFinding:
+    finding_id: str
+    severity: str  # critical, high, medium, low
+    category: str  # security, maintainability, performance, style
+    file_path: str
+    line_number: Optional[int]
+    description: str
+    evidence_snippet: str
+    remediation_suggestion: str
+    confidence_score: float
+
+@dataclass
+class QualityMetrics:
+    overall_score: float
+    security_score: float
+    maintainability_score: float
+    performance_score: float
+    style_score: float
+    documentation_score: float
+    lines_analyzed: int
+    files_reviewed: int
+
+@dataclass
+class ReviewReport:
+    review_id: str
+    timestamp: datetime
+    repository_info: RepositoryInfo
+    quality_metrics: QualityMetrics
+    findings: List[ReviewFinding]
+    summary: str
+    recommendations: List[str]
+    reviewer_persona: str
+
+@dataclass
+class RepositoryInfo:
+    url: str
+    commit_hash: str
+    branch: str
+    languages_detected: List[str]
+    total_files: int
+    total_lines: int
+
+@dataclass
+class AcademyToolDefinition:
+    tool_name: str
+    tool_group: str
+    version: str
+    interface_schema: dict
+    capabilities: List[str]
+    execution_parameters: dict
+```
+
+## File Structure
+
+```
+code_reviewer_agent/
+├── src/
+│   ├── __init__.py
+│   ├── agent/
+│   │   ├── __init__.py
+│   │   ├── core_engine.py              # Main agent orchestration logic
+│   │   ├── persona_loader.py           # YAML persona configuration handling
+│   │   └── claude_interface.py         # Anthropic SDK integration
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   ├── academy_resolver.py         # Academy tool catalog integration
+│   │   ├── tool_executor.py           # Dynamic tool execution engine
+│   │   └── code_analyzers/
+│   │       ├── __init__.py
+│   │       ├── ast_analyzer.py        # Abstract syntax tree parsing
+│   │       ├── security_scanner.py    # Security vulnerability detection
+│   │       ├── pattern_matcher.py     # Code pattern recognition
+│   │       └── quality_metrics.py     # Quality score calculation
+│   ├── review/
+│   │   ├── __init__.py
+│   │   ├── orchestrator.py           # Review workflow coordination
+│   │   ├── repository_handler.py     # Git repository operations
+│   │   ├── language_processors/
+│   │   │   ├── __init__.py
+│   │   │   ├── python_processor.py   # Python-specific analysis
+│   │   │   ├── javascript_processor.py
+│   │   │   ├── typescript_processor.py
+│   │   │   └── java_processor.py
+│   │   └── report_generator.py       # Review report formatting
+│   └── models/
+│       ├── __init__.py
+│       ├── persona.py                # Persona data models
+│       ├── review_models.py          # Review operation models
+│       └── academy_models.py         # Academy tool integration models
+├── config/
+│   ├── personas/
+│   │   └── code_reviewer.yaml        # Code Reviewer persona configuration
+│   └── agent_config.yaml            # Agent runtime configuration
+├── tests/
+│   ├── __init__.py
+│   ├── test_persona_loading.py
+│   ├── test_academy_integration.py
+│   ├── test_code_analysis.py
+│   ├── test_review_generation.py
+│   ├── fixtures/
+│   │   ├── sample_repositories/
+│   │   ├── test_personas/
+│   │   └── mock_academy_responses/
+│   └── integration/
+│       ├── test_end_to_end_review.py
+│       └── test_pipeline_integration.py
+├── scripts/
+│   ├── init.sh                       # Environment setup and agent startup
+│   └── validate_setup.py            # Configuration validation utility
+├── requirements.txt
+├── pyproject.toml
+├── README.md
+└── .env.example
+```
+
+## Success Criteria
+
+1. Agent successfully loads Code Reviewer persona configuration from YAML and exhibits persona-specific review behavior patterns in generated analysis reports.
+
+2. Academy tool catalog integration discovers and loads all available code_review group tools, with successful execution of at least 3 different analysis tools per review operation.
+
+3. Autonomous repository analysis completes end-to-end review workflow for repositories up to 10MB in size within 5 minutes, producing structured reports with quality metrics and categorized findings.
+
+4. Multi-language support accurately analyzes Python, JavaScript, and TypeScript codebases with language-specific quality standards, generating appropriate remediation suggestions for each language.
+
+5. Generated review reports contain minimum 90% accuracy in finding classification when validated against known code quality issues in test repositories.
+
+6. Agent operates independently without human intervention for standard review workflows, handling common error conditions gracefully with appropriate logging and fallback mechanisms.
+
+7. Integration with ST Metro ecosystem demonstrates successful operation within existing pipeline infrastructure with proper authentication and data format compliance.
+
+## Constraints & Notes
+
+The agent must maintain backward compatibility with existing ST Metro Academy tool interfaces while supporting dynamic tool discovery and loading. All persona configurations must be externalized to YAML files to enable runtime customization without code modifications.
+
+Security considerations require secure handling of repository credentials and API keys, with no sensitive information logged or persisted beyond the review session. The agent should implement rate limiting for API calls to prevent service disruption.
+
+Performance optimization should prioritize incremental analysis capabilities for large repositories, focusing computational resources on changed files while maintaining architectural context awareness. Memory usage must be managed carefully during concurrent review operations.
+
+The build agent should ensure all Academy tool integrations include proper error handling for service unavailability, with graceful degradation to cached tool definitions or alternative analysis methods when external services are unreachable.
