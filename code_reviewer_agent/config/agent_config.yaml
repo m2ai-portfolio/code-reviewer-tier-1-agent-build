@@ -1,0 +1,29 @@
+agent:
+  name: "Code Reviewer Agent"
+  version: "1.0.0"
+  persona_config: "config/personas/code_reviewer.yaml"
+
+review_settings:
+  max_file_size_kb: 500
+  concurrent_reviews: 3
+  default_output_format: "json"
+  supported_languages:
+    - "Python"
+    - "JavaScript"
+    - "TypeScript"
+    - "Java"
+    - "Go"
+
+git_settings:
+  clone_timeout: 300
+  default_branch: "main"
+  shallow_clone: true
+
+academy_integration:
+  catalog_url: "${ACADEMY_CATALOG_URL}"
+  cache_ttl_minutes: 60
+  fallback_to_mock: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
